@@ -358,13 +358,91 @@ export const handleMockRequest = async (method, rawUrl, data = null, headers = {
   }
 
   // -------------------------------------------------------------
-  // 7. E-COMMERCE SUITE
+  // 7. E-COMMERCE & STATS SUITE
   // -------------------------------------------------------------
-  if (pathname.includes('/ecom') || pathname.startsWith('/ecom/')) {
-    if (pathname.includes('/orders')) {
-      if (upperMethod === 'GET') return success(mockDb.get('ecomOrders'));
-      if (upperMethod === 'POST') return success(mockDb.insert('ecomOrders', body), 'Order placed');
+  if (pathname === '/orders' || pathname.startsWith('/orders/') || pathname.includes('/ecom/orders')) {
+    if (upperMethod === 'GET') return success(mockDb.get('ecomOrders'));
+    if (upperMethod === 'POST') return success(mockDb.insert('ecomOrders', body), 'Order placed');
+  }
+
+  if (pathname.includes('/stats') || pathname.includes('/reports')) {
+    if (pathname.includes('/sales')) {
+      const sales = Array.from({ length: 14 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (13 - i));
+        return {
+          date: d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          sales: Math.floor(18000 + (i * 1200) + Math.sin(i) * 5000),
+          orders: Math.floor(8 + (i % 5) + 3)
+        };
+      });
+      return success(sales);
     }
+    if (pathname.includes('/products')) {
+      const prods = mockDb.get('products').slice(0, 10).map((p, idx) => ({
+        id: p.id,
+        name: p.name,
+        totalSold: 120 - idx * 10,
+        sold: 120 - idx * 10,
+        revenue: (120 - idx * 10) * (p.dealerPrice || 70),
+        image: p.image || p.imageUrl
+      }));
+      return success(prods);
+    }
+    if (pathname.includes('/customers')) {
+      const custs = mockDb.get('ecomCustomers').slice(0, 10).map((c, idx) => ({
+        id: c.id,
+        name: c.name,
+        totalOrders: 15 - idx,
+        totalSpent: 18500 - idx * 1200
+      }));
+      return success(custs);
+    }
+    if (pathname.includes('/categories')) {
+      return success([
+        { name: 'Millets & Grains', revenue: 145000, orders: 120 },
+        { name: 'Cold Pressed Oils', revenue: 198000, orders: 165 },
+        { name: 'Breakfast & Mixes', revenue: 84000, orders: 95 },
+        { name: 'Healthy Noodles', revenue: 112000, orders: 110 },
+        { name: 'Natural Sweeteners', revenue: 76000, orders: 70 }
+      ]);
+    }
+    if (pathname.includes('/payment-methods')) {
+      return success([
+        { method: 'UPI / QR Code', count: 320, percentage: 62 },
+        { method: 'Credit / Debit Cards', count: 125, percentage: 24 },
+        { method: 'Net Banking', count: 45, percentage: 9 },
+        { method: 'Cash on Delivery', count: 26, percentage: 5 }
+      ]);
+    }
+    if (pathname.includes('/stock-health')) {
+      return success({ inStock: 38, lowStock: 6, outOfStock: 2 });
+    }
+    if (pathname.includes('/inactive-customers')) {
+      return success([
+        { id: 'c_01', name: 'Ravi Teja', email: 'ravi.t@example.com', lastOrder: '45 days ago', totalOrders: 3 },
+        { id: 'c_02', name: 'Ananya Rao', email: 'ananya.r@example.com', lastOrder: '60 days ago', totalOrders: 5 }
+      ]);
+    }
+    if (pathname.includes('/slow-moving')) {
+      return success([
+        { id: 'prod_sm1', name: 'Organic Barnyard Flour 500g', stock: 140, daysWithoutSale: 28 },
+        { id: 'prod_sm2', name: 'Herbal Moringa Tea 100g', stock: 85, daysWithoutSale: 35 }
+      ]);
+    }
+    // Main stats summary
+    const orders = mockDb.get('ecomOrders');
+    const customers = mockDb.get('ecomCustomers');
+    return success({
+      totalRevenue: 645800,
+      totalOrders: orders.length || 52,
+      totalCustomers: customers.length || 38,
+      averageOrderValue: 1240,
+      topSelling: mockDb.get('products').slice(0, 3)
+    });
+  }
+
+  if (pathname.includes('/ecom') || pathname.startsWith('/ecom/')) {
     if (pathname.includes('/customers')) return success(mockDb.get('ecomCustomers'));
     if (pathname.includes('/combos')) {
       if (upperMethod === 'GET') return success(mockDb.get('ecomCombos'));
@@ -382,14 +460,6 @@ export const handleMockRequest = async (method, rawUrl, data = null, headers = {
         mockDb.set('ecomSettings', body);
         return success(body, 'Settings updated');
       }
-    }
-    if (pathname.includes('/stats') || pathname.includes('/reports')) {
-      return success({
-        totalRevenue: 640000,
-        totalOrders: 520,
-        averageOrderValue: 1230,
-        topSelling: mockDb.get('products').slice(0, 3)
-      });
     }
   }
 
@@ -497,13 +567,31 @@ export const setupMockServer = () => {
       url.includes('onrender.com') ||
       url.includes('mansarafoods.com') ||
       url.startsWith('/api') ||
+      url.includes('/api/') ||
       url.includes('/products') ||
+      url.includes('/orders') ||
+      url.includes('/stats') ||
+      url.includes('/reports') ||
+      url.includes('/categories') ||
       url.includes('/ecom')
     ) {
       const method = (init.method || 'GET').toUpperCase();
       const res = await handleMockRequest(method, url, init.body, init.headers);
-      return new Response(JSON.stringify(res.data), {
-        status: res.status,
+      
+      // Adapt payload so both direct array/object access and envelope access (.data) succeed
+      let payload = res.data;
+      if (res.data && res.data.data !== undefined) {
+        if (Array.isArray(res.data.data)) {
+          payload = res.data.data;
+          // Also allow .data access if caller treats array response as an object
+          payload.data = res.data.data;
+        } else if (typeof res.data.data === 'object' && res.data.data !== null) {
+          payload = { ...res.data.data, ...res.data };
+        }
+      }
+
+      return new Response(JSON.stringify(payload), {
+        status: res.status || 200,
         headers: { 'Content-Type': 'application/json' }
       });
     }

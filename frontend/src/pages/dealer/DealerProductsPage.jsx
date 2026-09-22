@@ -268,8 +268,9 @@ export default function DealerProductsPage() {
           {products.map((product) => {
             const availableStock = dealerInventory[product.id] || 0;
             const chosenQty = quantities[product.id] || 1;
-            const inCart = items.some(item => item.productId === product.id);
-            const imageUrl = product.imageUrl ? `${BACKEND_URL}${product.imageUrl}` : null;
+            const imageUrl = product.imageUrl 
+              ? (product.imageUrl.startsWith('http') || product.imageUrl.startsWith('data:') ? product.imageUrl : `${BACKEND_URL}${product.imageUrl}`) 
+              : (product.image || null);
 
             return (
               <div key={product.id} className="bg-white border border-slate-150 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow group relative">

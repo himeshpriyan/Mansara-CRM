@@ -7,15 +7,8 @@ import {
 } from 'lucide-react';
 import BulkUploadModal from '../../components/BulkUploadModal';
 
-// E-Commerce backend base URL
-const getEcomApiUrl = () => {
-  const envUrl = import.meta.env.VITE_ECOM_API_URL || import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl;
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return isLocal ? 'http://localhost:5000/api' : 'https://api.mansarafoods.com/api';
-};
-
-const ECOM_API = getEcomApiUrl();
+// E-Commerce mock base URL
+const ECOM_API = '/api';
 
 const getEcomToken = () => localStorage.getItem('mansara_token') || localStorage.getItem('mansara-token') || '';
 

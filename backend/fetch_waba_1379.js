@@ -18,7 +18,8 @@ const wabaId = '1379129324117602';
         });
       }
     });
-  } catch (err) {
+  }
+  catch (err) {
     console.error('Error fetching templates:', err.response?.data || err.message);
   }
 })();

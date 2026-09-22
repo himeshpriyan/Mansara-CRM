@@ -460,8 +460,9 @@ export default function CartPage() {
                     const chosenMargin = localMargins[product.id] || 10;
                     const inCart = items.some(it => it.productId === product.id);
                     const mrp = parseFloat(product.mrp || product.price || 0);
-                    const sellingPrice = mrp * (1 - chosenMargin / 100);
-                    const imageUrl = product.imageUrl ? `${BACKEND_URL}${product.imageUrl}` : null;
+                    const imageUrl = product.imageUrl 
+                      ? (product.imageUrl.startsWith('http') || product.imageUrl.startsWith('data:') ? product.imageUrl : `${BACKEND_URL}${product.imageUrl}`) 
+                      : (product.image || null);
 
                     return (
                       <tr key={product.id} className="hover:bg-slate-50/20">
@@ -625,8 +626,9 @@ export default function CartPage() {
                     const cartonSize = item.product.cartonSize || item.product.pacQuantity || 24;
                     const qtyInPieces = unit === 'CTN' ? item.quantity * cartonSize : item.quantity;
                     const lineTotal = sellingPrice * qtyInPieces;
-                    const maxStock = dealerInventory[item.productId] || 0;
-                    const itemImageUrl = item.product.imageUrl ? `${BACKEND_URL}${item.product.imageUrl}` : null;
+                    const itemImageUrl = item.product.imageUrl 
+                      ? (item.product.imageUrl.startsWith('http') || item.product.imageUrl.startsWith('data:') ? item.product.imageUrl : `${BACKEND_URL}${item.product.imageUrl}`) 
+                      : (item.product.image || null);
 
                     return (
                       <tr key={item.productId} className="hover:bg-slate-50/20">
